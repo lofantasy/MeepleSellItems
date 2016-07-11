@@ -6,3 +6,4 @@
 ## Author: Lofantasy
 
 MeepleSellItems.lua
+MeepleItemCompare.lua

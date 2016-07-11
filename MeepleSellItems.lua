@@ -79,6 +79,10 @@ function frame:OnEvent(event, arg1)
         isBankOpen = false;
     end
 
+    if ( event == "PLAYER_LOGIN") then
+        init_tooltips();
+    end
+
 end
 
 frame:SetScript( "OnEvent", frame.OnEvent);
@@ -143,6 +147,9 @@ local function checkRareGear( itemLink, bag, slot, isBoe, isCollected, isSoulBou
         if ( not isCollected) then
             print(" - Not Collected, Equip to learn");
         else
+            -- Known issue: timewarped bases the actual ilvl off the items tru ilevel. aka, if its a 200 ilvl but with timewarped its 630 the item[4] will show 200.
+            -- - there is a bonus ID of 615 that shows its timewarped
+
             if ( item[4] < 600) then
                 print(" - Learned, Selling item now (<600 ilvl)");
                 safe_sell_item(bag, slot);
@@ -154,6 +161,40 @@ local function checkRareGear( itemLink, bag, slot, isBoe, isCollected, isSoulBou
 
 end
 
+local function checkEpicGear( itemLink, bag, slot, isBoe, isCollected, isSoulBound)
+    local item = { GetItemInfo( itemLink)};
+    local classId = item[12];
+    local subClassId = item[13];
+
+    if ( item[9] ~= "") then
+        if ( checkUseableGear( itemLink, classId, subClassId, bag, slot, item[9])) then
+            if ( isSoulBound) then
+                print("  - Unuseable item found, sell at merchant");
+                safe_sell_item(bag, slot);
+            else
+                print("  - BOE Item, Send to toon that can use it");
+            end
+
+            return;
+        end
+
+        if ( not isCollected) then
+            print("  - Not Collected, Equip to learn");
+        else
+            if ( item[4] < 600) then
+                print("  - Learned, Selling item now (<600 ilvl)");
+
+                if ( isSoulBound) then
+                    safe_sell_item(bag, slot);
+                end
+
+            end
+
+        end
+
+    end
+
+end
 
 function ScanTooltipOfBagItem(bag, slot)
     local isBOE = false;
@@ -167,6 +208,7 @@ function ScanTooltipOfBagItem(bag, slot)
             isBOE = true
             -- break
         elseif _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText() == "You haven't collected this appearance" then
+            -- I am going to assume with the release of 7.x there will be a new API for this information. there IS a new Blizzard plugin for it but i see no source to it yet.
             isCollected = false;
         elseif _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText() == ITEM_SOULBOUND then
             isSoulBound = true;
@@ -216,10 +258,11 @@ function SlashCmdList.MEEPLESELLITEM()
                                 checkGreenGear(itemLink, bag, slot, isBoe, isCollected, soulBound);
                             elseif ( quality == LE_ITEM_QUALITY_RARE) then
                                 checkRareGear(itemLink, bag, slot, isBoe, isCollected, soulBound);
+                            elseif ( quality == LE_ITEM_QUALITY_EPIC) then
+                                checkEpicGear(itemLink, bag, slot, isBoe, isCollected, soulBound);
                             end
 
                         end
-
 
                     end
 
@@ -263,6 +306,8 @@ local majorBonuses = {
 --[[
 Faceguard of the Hammer Clan: |cff0070dd|Hitem:127639::::::::100:73:512:22:2:615:656:100:::|h[Faceguard of the Hammer Clan]|h|r
     Timewarped Warforged, Item Level 675, Str, Stam, Haste, Int, Plate.
+    - 615 = timewarped
+    - 656 = timewarped warforged
 
 Bonegrider Breastplate: |cff0070dd|Hitem:127623::::::::100:73:512:22:1:615:100:::|h[Bonegrider Breastplate]|h|r
     Timewarped, item level 660, str, stam, crit, int
