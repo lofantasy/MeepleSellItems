@@ -28,25 +28,35 @@ local Unusable = {
 
     },
     ["Warrior"] = {
-        ["Weapons"] = {
-            ["Two-Handed Axes"] = false,
-            ["Wands"] = true
+        [LE_ITEM_CLASS_WEAPON] = {
+            [LE_ITEM_WEAPON_WAND] = true
         },
-        ["Armor"] = {
-            ["Cloth"] = true,
-            ["Mail"] = true,
-            ["Leather"] =  true
+        [LE_ITEM_CLASS_ARMOR] = {
+            [LE_ITEM_ARMOR_CLOTH] = true,
+            [LE_ITEM_ARMOR_LEATHER] = true,
+            [LE_ITEM_ARMOR_MAIL] = true
         }
-        -- In WoW 7.x the below works:
-        --[LE_ITEM_CLASS_WEAPON] = {
-        --    [LE_ITEM_WEAPON_WAND] = true
-        --}
     },
     ["Death Knight"] = {
 
     },
     ["Druid"] = {
 
+    },
+    ["Shaman"] = {
+        [LE_ITEM_CLASS_WEAPON] = {
+            [LE_ITEM_WEAPON_SWORD1H] = true,
+            [LE_ITEM_WEAPON_CROSSBOW] = true,
+            [LE_ITEM_WEAPON_BOWS] = true,
+            [LE_ITEM_WEAPON_WAND] = true,
+            [LE_ITEM_WEAPON_GUNS] = true,
+            [LE_ITEM_WEAPON_POLEARM] = true,
+        },
+        [LE_ITEM_CLASS_ARMOR] = {
+            [LE_ITEM_ARMOR_CLOTH] = true,
+            [LE_ITEM_ARMOR_LEATHER] = true,
+            [LE_ITEM_ARMOR_PLATE] = true
+        }
     }
 }
 
@@ -75,10 +85,14 @@ frame:SetScript( "OnEvent", frame.OnEvent);
 
 SLASH_MEEPLESELLITEM1 = "/meeplesellitem";
 
+local function safe_sell_item(bag, slot)
+    if (MerchantFrame:IsVisible()) then
+        UseContainerItem(bag,slot);
+    end
+end
+
+
 local function checkUseableGear( itemLink, classId, subClassId, bag, slot, typ)
-    print(classId);
-    print(subClassId);
-    print(typ);
 
     if ( Unusable[className][ classId][ subClassId] and typ ~= "INVTYPE_CLOAK") then
         -- safe_sell_item( bag, slot);
@@ -97,40 +111,46 @@ local function checkGreenGear( itemLink, bag, slot, isBoe, isCollected, isSoulBo
     if ( item[9] ~= "") then
         if ( checkUseableGear( itemLink, classId, subClassId, bag, slot, item[9])) then
             print("  - Unuseable item found, sell at merchant");
+            safe_sell_item(bag, slot);
             return;
         end
 
         if ( not isCollected) then
             print(" - Not Collected, Equip to learn");
-        end
-    else
-        if ( item[4] < 600) then
-            print(" - LEarned, Selling item now (<600 ilvl");
-            -- safe_sell_item(bag, slot);
+        else
+            if ( item[4] < 600) then
+                print(" - Learned, Selling item now (<600 ilvl)");
+                safe_sell_item(bag, slot);
+            end
         end
 
     end
 
 end
 
-local function checkRareGear( itemLink, bag, slot, isBoe, isCollected, isSoulbound)
+local function checkRareGear( itemLink, bag, slot, isBoe, isCollected, isSoulBound)
     local item = { GetItemInfo( itemLink)};
     local classId = item[12];
     local subClassId = item[13];
 
     if ( item[9] ~= "") then
+        if ( checkUseableGear( itemLink, classId, subClassId, bag, slot, item[9])) then
+            print("  - Unuseable item found, sell at merchant");
+            safe_sell_item(bag, slot);
+            return;
+        end
+
         if ( not isCollected) then
             print(" - Not Collected, Equip to learn");
-        end
-    else
-        if ( item[4] < 600) then
-            print(" - LEarned, Selling item now (<600 ilvl");
-            -- safe_sell_item(bag, slot);
+        else
+            if ( item[4] < 600) then
+                print(" - Learned, Selling item now (<600 ilvl)");
+                safe_sell_item(bag, slot);
+            end
+
         end
 
     end
-
-
 
 end
 
@@ -158,16 +178,12 @@ function ScanTooltipOfBagItem(bag, slot)
 
 end
 
-
-
-
-
 function SlashCmdList.MEEPLESELLITEM()
     DEFAULT_CHAT_FRAME:AddMessage("" .. UnitClass("player"));
 
-    if (MerchantFrame:IsVisible()) then
-        -- Merchant window is open, prepare to scan/sell items
-    else
+--    if (MerchantFrame:IsVisible()) then
+--        -- Merchant window is open, prepare to scan/sell items
+--    else
         -- scan for items that are not learned from mogging.
         for bag = 4, 4, 1 do
             for slot = 1, GetContainerNumSlots( bag), 1 do
@@ -179,15 +195,32 @@ function SlashCmdList.MEEPLESELLITEM()
                     local color = itemLink:match("|c(%w+)|H");
                     local name, link, quality, itemLevel, reqLevel, class, subClass, maxStack, equipSlot, itemTexture = GetItemInfo( itemLink);
 
-                    print("Bag [" .. slot .. "]: " .. id .. " [" .. color .. "]: " .. itemLink .. " [" .. class .. "]");
-                    if ( subClass ~= nil) then
-                        print("  SubClass [" .. subClass .. "]");
-                    end
+                    if ( class == "Armor" or class == "Weapon") then
 
-                    if ( quality == LE_ITEM_QUALITY_UNCOMMON) then
-                        checkGreenGear(itemLink, bag, slot, boe, collected, sb);
-                    elseif ( quality == LE_ITEM_QUALITY_RARE) then
-                        print(" - Blue Quality");
+                        print("Bag [" .. slot .. "]: " .. id .. " [" .. color .. "]: " .. itemLink .. " [" .. class .. "] ilvl [" .. itemLevel .. "]");
+                        if ( subClass ~= nil) then
+                            print("  SubClass [" .. subClass .. "]");
+                        end
+                        -- Debug:
+                        --DEFAULT_CHAT_FRAME:AddMessage(":  " .. itemLink:gsub("|", "||"));
+                        --FindBonuses(itemLink, itemId, bag, slot);
+                        -- ^ this is to show what bonuses the item actually has. need to work on figuring out timewalking.
+
+                        if ( subClass == "Miscellaneous") then
+
+                        else
+
+                            local isBoe, isCollected, soulBound = ScanTooltipOfBagItem(bag, slot);
+
+                            if ( quality == LE_ITEM_QUALITY_UNCOMMON) then
+                                checkGreenGear(itemLink, bag, slot, isBoe, isCollected, soulBound);
+                            elseif ( quality == LE_ITEM_QUALITY_RARE) then
+                                checkRareGear(itemLink, bag, slot, isBoe, isCollected, soulBound);
+                            end
+
+                        end
+
+
                     end
 
                 end
@@ -196,7 +229,75 @@ function SlashCmdList.MEEPLESELLITEM()
 
         end
 
-    end
+--    end
 
+
+end
+
+
+-- Borrowed from another addon while i figure out what it does.
+local majorBonuses = {
+    [451] = true,
+    [450] = true,
+    [566] = true,
+    [567] = true,
+    -- [518] = true, -- Item Level 530
+    -- [519] = true, -- Item Level 550
+    -- [520] = true, -- Item Level 570
+    -- [521] = true, -- Item Level 600
+    -- [522] = true, -- Item Level 615
+    [524] = true, -- Item Level 630
+    [525] = true,
+    [526] = true,
+    [527] = true,
+    [593] = true,
+    [617] = true,
+    [618] = true,
+    [558] = true,
+    [559] = true,
+    [594] = true,
+    [619] = true,
+    [620] = true,
+}
+
+--[[
+Faceguard of the Hammer Clan: |cff0070dd|Hitem:127639::::::::100:73:512:22:2:615:656:100:::|h[Faceguard of the Hammer Clan]|h|r
+    Timewarped Warforged, Item Level 675, Str, Stam, Haste, Int, Plate.
+
+Bonegrider Breastplate: |cff0070dd|Hitem:127623::::::::100:73:512:22:1:615:100:::|h[Bonegrider Breastplate]|h|r
+    Timewarped, item level 660, str, stam, crit, int
+ ]]--
+
+function FindBonuses(link, id, bag, slot)
+    if link then
+        local bonusesNum, bonusesString = link:match("item:%d+:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:([0-9%-]*):([0-9:]*)");
+        if ( bonusesString == nil) then
+            bonusesString = "";
+        end
+        if ( bonusesNum == nil) then
+            bonusesNum = -1;
+        end
+
+        if bonusesNum and bonusesString and tonumber(bonusesNum) then
+            for i = 1, tonumber(bonusesNum) do
+                local bonus = bonusesString:match("^[0-9%-]+")
+
+                if bonus then
+                    DEFAULT_CHAT_FRAME:AddMessage("-- " .. bonus);
+                    bonus = tonumber(bonus)
+                    if majorBonuses[bonus] then
+                        return bonus
+                    end
+                end
+
+                if bonusesString:find(":") then
+                    bonusesString = bonusesString:gsub("^[^:]*:","")
+                end
+            end
+        end
+
+        DEFAULT_CHAT_FRAME:AddMessage("Bonus (" .. bonusesNum .. "), vals [" .. bonusesString .. "]");
+
+    end
 
 end
