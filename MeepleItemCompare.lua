@@ -53,8 +53,18 @@ local function scanEquippedTooltip(itemLink)
 
         if (_G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Intellect")) then
             charDetails["Intellect"] = _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Intellect");
+
         elseif (_G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Stamina")) then
             charDetails["Stamina"] = _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Stamina");
+
+        elseif (_G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Critical Strike")) then
+            charDetails["Critical Strike"] = _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Critical Strike");
+
+        elseif (_G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Haste")) then
+            charDetails["Haste"] = _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Haste");
+
+        elseif (_G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Mastery")) then
+            charDetails["Mastery"] = _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Mastery");
 
         end
 
@@ -148,6 +158,23 @@ itemDetails = { GetItemInfo(itemLink) }
 
  ]]--
 
+local function compareStats(stat)
+    local equippedStat = 0;
+    local itemStat = 0;
+
+    if ( tooltipDetails[stat] ~= nil) then
+        itemStat = tooltipDetails[stat];
+    end
+
+    if ( charDetails[stat] ~= nil) then
+        equippedStat = charDetails[stat];
+    end
+
+    print("EquippeD: " .. equippedStat);
+    print("itemStat: " .. itemStat);
+    print(stat .. ": " .. ((equippedStat - itemStat) * -1));
+    return ((equippedStat - itemStat) * -1);
+end
 
 local function OnGameSetItem( tooltip, bag, slot)
     if ( not isTooltipDone) and tooltip then
@@ -181,22 +208,30 @@ local function OnGameSetItem( tooltip, bag, slot)
                     print("EquipSlot: " .. equipSlot);
                     print( charItem);
 
-                    if ( tooltipDetails["Intellect"] ~= nil and charDetails["Intellect"] ~= nil) then
-                        local intDiff = (charDetails["Intellect"] - tooltipDetails["Intellect"]) * -1;
-                        tooltip:AddLine("- Intellect: " .. intDiff, 1, 1, 1);
-                    end
+--                    if ( tooltipDetails["Intellect"] ~= nil and charDetails["Intellect"] ~= nil) then
+--                        local intDiff = (charDetails["Intellect"] - tooltipDetails["Intellect"]) * -1;
+--                        tooltip:AddLine("- Intellect: " .. intDiff, 1, 1, 1);
+--
+--
+--                    end
+--
+--                    if ( tooltipDetails["Stamina"] ~= nil and charDetails["Stamina"] ~= nil) then
+--                        print("woo?");
+--                        local intDiff = (charDetails["Stamina"] - tooltipDetails["Stamina"]) * -1;
+--                        if (intDiff < 0) then
+--                            -- tooltip:AddLine("- Stamina: |cfffffdd0" .. intDiff .. "|r");
+--
+--                        else
+--                            tooltip:AddLine("- Stamina: " .. intDiff, 1, 1, 1);
+--                        end
+--                    end
+                    tooltip:AddLine("- Intellect: " .. compareStats("Intellect"), 0.77, 0.12, 0.23);
+                    tooltip:AddLine("- Stamina: " .. compareStats("Stamina"), 0.77, 0.12, 0.23);
 
-                    if ( tooltipDetails["Stamina"] ~= nil and charDetails["Stamina"] ~= nil) then
-                        print("woo?");
-                        local intDiff = (charDetails["Stamina"] - tooltipDetails["Stamina"]) * -1;
-                        if (intDiff < 0) then
-                            -- tooltip:AddLine("- Stamina: |cfffffdd0" .. intDiff .. "|r");
-                            tooltip:AddLine("- Stamina: " .. intDiff, 0.77, 0.12, 0.23);
-                        else
-                            tooltip:AddLine("- Stamina: " .. intDiff, 1, 1, 1);
-                        end
+                    tooltip:AddLine("- Critical Strike: " .. compareStats("Critical Strike"));
+                    tooltip:AddLine("- Mastery: " .. compareStats("Mastery"));
+                    tooltip:AddLine("- Haste: " .. compareStats("Haste"));
 
-                    end
 
                     -- tooltip:AddLine("- Strength: +125", 1, 1, 1); -- same with the 1, 1, 1, also see if this can be used to make the text green or red for +/-
                     -- pretty much go thru each stat on both equipped and mouseovered item.
