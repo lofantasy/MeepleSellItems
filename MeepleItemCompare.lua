@@ -94,7 +94,9 @@ local function scanEquippedTooltip(itemLink, compare, hasStat)
             compare["Speed"] = _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("+(%d+) Speed");
             hasStat["Speed"] = 1;
 
-
+        elseif (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^Prismatic Socket")) then
+            compare["Socket"] = 1;
+            hasStat["Socket"] = 1;
         end
     end
 
@@ -165,6 +167,10 @@ local function parseTooltip(tooltip, compare, hasStat)
                 -- tooltipDetails["Critical Strike"] = leftText:match("+(%d+) Speed");
                 compare["Speed"] = leftText:match("+(%d+) Speed");
                 hasStat["Speed"] = 1;
+
+            elseif (leftText:match("^Prismatic Socket")) then
+                compare["Socket"] = 1;
+                hasStat["Socket"] = 1;
 
 
             else
@@ -257,6 +263,7 @@ local function compareStats(stat, compare, hasStat, tooltip, statValue, coeffici
             _b = 0.00
         end
 
+        print(stat .. ": " .. statValue);
         if (statValue > 0) then
             if (coefficient > 0) then
                 _change = ((val * coefficient) / statValue)
@@ -265,6 +272,11 @@ local function compareStats(stat, compare, hasStat, tooltip, statValue, coeffici
             end
 
             tooltip:AddLine(format("%2s%.0f %s (%.2f)", _prefix, _val, stat, _change), _r, _g, _b);
+--            tooltip:AddDoubleLine(
+--                format("%2s%.0f %s", _prefix, val, stat),
+--                format("%.2f", _change),
+--                _r, _g, _b,
+--                _r, _b, _b);
         else
             tooltip:AddLine(format("%2s%.0f %s ", _prefix, _val, stat), _r, _g, _b);
         end
@@ -332,11 +344,20 @@ local function OnGameSetItem(tooltip, bag, slot)
         if (itemLink ~= nil) then
             local itemDetails = { GetItemInfo(itemLink) };
 
-            print("Hello?");
             if (itemDetails[6] == "Armor" or itemDetails[6] == "Weapon") then
                 tooltip:ClearLines();
                 tooltip:SetOwner(UIParent, "ANCHOR_NONE")
                 tooltip:SetHyperlink(itemLink);
+
+                --[[ re-write the tooltip. just for giggles? ]]--
+--                tooltip:ClearLines();
+--                for k = 1, tooltip:NumLines() do
+--                    leftText = _G["GameTooltipTextLeft" .. k]:GetText();
+--                    rightText = _G["GameTooltipTextRight" .. k]:GetText();
+--
+--                    tooltip:AddLine("1");
+--                end
+                --[[ re-write the tooltip. just for giggles? ]]--
 
                 tooltip:AddLine(" ");
                 tooltip:AddLine("Stat changes:", 1, 1, 1); -- see what the 1, 1, 1 do. if i remember it was making the text gray.
@@ -361,7 +382,8 @@ local function OnGameSetItem(tooltip, bag, slot)
                         ["Versatility"] = 0,
                         ["Mastery"] = 0,
                         ["Avoidance"] = 0,
-                        ["Speed"] = 0
+                        ["Speed"] = 0,
+                        ["Socket"] = 0
                     },
                     ["item"] = {
                         ["Armor"] = 0,
@@ -374,7 +396,8 @@ local function OnGameSetItem(tooltip, bag, slot)
                         ["Versatility"] = 0,
                         ["Mastery"] = 0,
                         ["Avoidance"] = 0,
-                        ["Speed"] = 0
+                        ["Speed"] = 0,
+                        ["Socket"] = 0
                     }
                 }
 
@@ -390,7 +413,8 @@ local function OnGameSetItem(tooltip, bag, slot)
                         ["Versatility"] = 0,
                         ["Mastery"] = 0,
                         ["Avoidance"] = 0,
-                        ["Speed"] = 0
+                        ["Speed"] = 0,
+                        ["Socket"] = 0
                     },
                     ["item"] = {
                         ["Armor"] = 0,
@@ -403,79 +427,13 @@ local function OnGameSetItem(tooltip, bag, slot)
                         ["Versatility"] = 0,
                         ["Mastery"] = 0,
                         ["Avoidance"] = 0,
-                        ["Speed"] = 0
+                        ["Speed"] = 0,
+                        ["Socket"] = 0
                     }
                 }
 
                 parseTooltip(tooltip, compare["item"], hasStat["item"]);
                 scanEquippedTooltip(charItem, compare["equipped"], hasStat["equipped"]);
-                print(compare["item"]["Intellect"]);
-                print(compare["equipped"]["Intellect"]);
-                --                    if ( tooltipDetails["Intellect"] ~= nil and charDetails["Intellect"] ~= nil) then
-                --                        local intDiff = (charDetails["Intellect"] - tooltipDetails["Intellect"]) * -1;
-                --                        tooltip:AddLine("- Intellect: " .. intDiff, 1, 1, 1);
-                --
-                --
-                --                    end
-                --
-                --                    if ( tooltipDetails["Stamina"] ~= nil and charDetails["Stamina"] ~= nil) then
-                --                        print("woo?");
-                --                        local intDiff = (charDetails["Stamina"] - tooltipDetails["Stamina"]) * -1;
-                --                        if (intDiff < 0) then
-                --                            -- tooltip:AddLine("- Stamina: |cfffffdd0" .. intDiff .. "|r");
-                --
-                --                        else
-                --                            tooltip:AddLine("- Stamina: " .. intDiff, 1, 1, 1);
-                --                        end
-                --                    end
---                local val, _r, _g, _b, _prefix;
---                local _hasInt, _hasStam, _hasCrit, _hasMastery, _hasHaste, _hasVersatility;
---
---                _hasInt, _prefix, val, _r, _g, _b = compareStats("Intellect", compare, hasStat);
---
---                if (_hasInt) then
---                    tooltip:AddLine(_prefix .. val .. " Intellect", _r, _g, _b);
---                end
---
---                _hasCrit, _prefix, val, _r, _g, _b = compareStats("Critical Strike", compare, hasStat);
---                if (_hasCrit) then
---                    tooltip:AddLine(_prefix .. val .. " Critical Strike", _r, _g, _b);
---                end
---
---
---                _hasHaste, _prefix, val, _r, _g, _b = compareStats("Haste", compare, hasStat);
---                if (_hasHaste) then
---                    tooltip:AddLine(_prefix .. val .. " Haste", _r, _g, _b);
---                end
---
---                _hasVersatility, _prefix, val, _r, _g, _b = compareStats("Versatility", compare, hasStat);
---                if (_hasVersatility) then
---                    tooltip:AddLine(_prefix .. val .. " Versatility", _r, _g, _b);
---
---                end
---
---                _hasMastery, _prefix, val, _r, _g, _b = compareStats("Mastery", compare, hasStat);
---                if (_hasMastery) then
---                    tooltip:AddLine(    _prefix .. val .. " Mastery", _r, _g, _b);
---                    tooltip:AddLine(format("(%2s)%.2f %s", "-", (val*-1), "Mastery"), _r, _g, _b);
---                    tooltip:AddLine(format("(%2s)%.0f %s", "+", (val*-1), "Mastery"), _r, _g, _b);
---
---                    -- print("Hallo" .. format("%.2f%%", mastery));
---                    local mastery, coefficient = GetMasteryEffect();
---                    print("OMGOMG: " .. coefficient);
---                    print(format("%s%s %s (%s%.2f)", "-", "100", "Mastery", "-", "0.12345"));
---                    print(format("%s%s %s (%s%.2f)", "+", "100", "Mastery", "+", "0.12345"));
---                    print(format("(%10s) %.2f", "Test", coefficient));
---                end
-
-                --tooltip:AddLine("- Intellect: " .. compareStats("Intellect", compare, hasStat), 0.77, 0.12, 0.23);
-                --tooltip:AddLine("- Stamina: " .. compareStats("Stamina", compare, hasStat), 0.77, 0.12, 0.23);
-
-                --tooltip:AddLine("- Critical Strike: " .. compareStats("Critical Strike", compare, hasStat));
-                --tooltip:AddLine("- Mastery: " .. compareStats("Mastery", compare, hasStat));
-                --tooltip:AddLine("- Haste: " .. compareStats("Haste", compare, hasStat));
-                --tooltip:AddLine("- Haste: " .. compareStats("Versatility", compare, hasStat));
-
 
                 -- tooltip:AddLine("- Strength: +125", 1, 1, 1); -- same with the 1, 1, 1, also see if this can be used to make the text green or red for +/-
                 -- pretty much go thru each stat on both equipped and mouseovered item.
@@ -504,7 +462,10 @@ local function OnGameSetItem(tooltip, bag, slot)
                 compareStats("Mastery", compare, hasStat, tooltip, 110, coefficient);
                 compareStats("Avoidance", compare, hasStat, tooltip, 0, 0);
                 compareStats("Speed", compare, hasStat, tooltip, 0, 0);
+                compareStats("Socket", compare, hasStat, tooltip, 0, 0);
 
+
+                -- tooltip:AddDoubleLine("LEft", "Right", 1, 1, 1, 0.2, 0.3, 0.4)
                 -- Socket?
                 -- Leech?
                 -- DW vs 2H
