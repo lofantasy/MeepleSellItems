@@ -1,8 +1,12 @@
 local GlobalAddonName = ...
 
+MeepleSellItems = {};
+
 local isTooltipDone;
 local tooltipDetails = {};
 local charDetails = {};
+
+-- /run SocketInventoryITem(16);
 
 
 local inspectScantip = CreateFrame("GameTooltip", GlobalAddonName .. "ScanningTooltip", nil, "GameTooltipTemplate")
@@ -39,10 +43,9 @@ local function scanEquippedTooltip(itemLink, compare, hasStat)
     inspectScantip:SetHyperlink(itemLink);
 
     for k = 1, inspectScantip:NumLines() do
-        -- print(_G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText());
+       -- print(": " ..  _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText());
 
         if (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^(%d+) Armor")) then
-            print("Test");
             compare["Armor"] = _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^(%d+) Armor");
             hasStat["Armor"] = 1;
 
@@ -54,8 +57,8 @@ local function scanEquippedTooltip(itemLink, compare, hasStat)
             compare["Strength"] = _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("+(%d+) Strength");
             hasStat["Strength"] = 1;
 
-        elseif (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^+(%d+) Agility")) then
-            compare["Agility"] = _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("+(%d+) Agility");
+        elseif (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^+(%d+) Agility$")) then
+            compare["Agility"] = _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("+(%d+) Agility$");
             hasStat["Agility"] = 1;
 
         elseif (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^+(%d+) Stamina")) then
@@ -67,7 +70,6 @@ local function scanEquippedTooltip(itemLink, compare, hasStat)
             -- charDetails["Critical Strike"] = _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Critical Strike");
             compare["Critical Strike"] = _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("+(%d+) Critical Strike");
             hasStat["Critical Strike"] = 1;
-            print("Equip has it")
 
         elseif (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^+(%d+) Haste")) then
             -- charDetails["Haste"] = _G[GlobalAddonName.."ScanningTooltipTextLeft"..k]:GetText():match("+(%d+) Haste");
@@ -94,9 +96,13 @@ local function scanEquippedTooltip(itemLink, compare, hasStat)
             compare["Speed"] = _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("+(%d+) Speed");
             hasStat["Speed"] = 1;
 
-        elseif (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^Prismatic Socket")) then
+        elseif (_G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText():match("^<Shift Right Click to Socket>")) then
             compare["Socket"] = 1;
             hasStat["Socket"] = 1;
+            print("Matched!");
+
+        else
+            -- print("UnParsed: " .. _G[GlobalAddonName .. "ScanningTooltipTextLeft" .. k]:GetText());
         end
     end
 
@@ -108,7 +114,6 @@ end
 local function parseTooltip(tooltip, compare, hasStat)
     local leftText, rightText;
 
-    print(tooltip:GetName());
     if (tooltip ~= nil) then
         for k = 1, tooltip:NumLines() do
             leftText = _G["GameTooltipTextLeft" .. k]:GetText();
@@ -168,15 +173,17 @@ local function parseTooltip(tooltip, compare, hasStat)
                 compare["Speed"] = leftText:match("+(%d+) Speed");
                 hasStat["Speed"] = 1;
 
-            elseif (leftText:match("^Prismatic Socket")) then
+            elseif (leftText:match("^<Shift Right Click to Socket>")) then
                 compare["Socket"] = 1;
                 hasStat["Socket"] = 1;
 
-
             else
-                print("UnParsed: " .. leftText);
+                -- print("UnParsed: " .. leftText);
             end
         end
+
+        -- TODO: since some itesm can / do have str|int, str|Agi, int|agi, ect. blank out the one depending on the class currently being used.
+        -- aka, DK would use str, blank out int/agi.
     end
 end
 
@@ -240,7 +247,7 @@ local function compareStats(stat, compare, hasStat, tooltip, statValue, coeffici
     local val = ((equippedStat - itemStat) * -1);
 
     if (hasStat["item"][stat] == 1 or hasStat["equipped"][stat] == 1) then
-        local _r, _g, _b, _prefix, _val, _change;
+        local _r, _g, _b, _prefix, _val, _change, _colour;
 
         if (val < 0) then
             _prefix = "-";
@@ -248,22 +255,23 @@ local function compareStats(stat, compare, hasStat, tooltip, statValue, coeffici
             _r = 0.77
             _g = 0.12
             _b = 0.23
-
+            _colour = "C41F3B"
         elseif (val == 0) then
             _prefix = " "
-            _val = val * -1;
+            _val = val;
             _r = 1.00
             _g = 1.00
             _b = 1.00
+            _colour = "FFFFFF";
         else
             _prefix = "+"
             _val = val;
             _r = 0.20
             _g = 1.00
-            _b = 0.00
+            _b = 0.50
+            _colour = "00FF00"
         end
 
-        print(stat .. ": " .. statValue);
         if (statValue > 0) then
             if (coefficient > 0) then
                 _change = ((val * coefficient) / statValue)
@@ -271,14 +279,16 @@ local function compareStats(stat, compare, hasStat, tooltip, statValue, coeffici
                 _change = (val / statValue);
             end
 
-            tooltip:AddLine(format("%2s%.0f %s (%.2f)", _prefix, _val, stat, _change), _r, _g, _b);
---            tooltip:AddDoubleLine(
---                format("%2s%.0f %s", _prefix, val, stat),
---                format("%.2f", _change),
---                _r, _g, _b,
---                _r, _b, _b);
+            if (_change < 0) then
+                _change = ( _change * -1);
+            end
+
+            local leftText = "|cff" .. _colour .. format("%2s%.0f %s", _prefix, _val, stat);
+            local rightText = "|cFF" .. _colour .. format("%s%.2f%%", _prefix, _change);
+
+            tooltip:AddDoubleLine(leftText, rightText);
         else
-            tooltip:AddLine(format("%2s%.0f %s ", _prefix, _val, stat), _r, _g, _b);
+            tooltip:AddLine(format("%2s%.0f %s", _prefix, _val, stat), _r, _g, _b);
         end
 
     end
@@ -478,10 +488,147 @@ local function OnGameSetItem(tooltip, bag, slot)
     end
 end
 
+local function addToTooltip(tooltip, itemLink)
+    local itemInfo = GetItemInfo(itemLink)
+
+    if not itemInfo then
+        MeepleSellItems.cachedItemLink = nil;
+        MeepleSellItems.cachedTooltipText = nil;
+        return;
+    end
+
+    -- OnGameSetItem()
+
+    local itemType = select(6, GetItemInfo(itemLink));
+
+    if ( itemType == "Armor" or itemType == "Weapon") then
+        local equipSlot = select(9, GetItemInfo(itemLink));
+        local charItem = GetInventoryItemLink("player", slots[equipSlot]);
+        local _, coefficient = GetMasteryEffect();
+
+        tooltip:AddLine(" ");
+        tooltip:AddLine("Stat changes: ", 1, 1, 1);
+
+        local compare = {
+            ["equipped"] = {
+                ["Armor"] = 0,
+                ["Strength"] = 0,
+                ["Agility"] = 0,
+                ["Intellect"] = 0,
+                ["Stamina"] = 0,
+                ["Critical STrike"] = 0,
+                ["Haste"] = 0,
+                ["Versatility"] = 0,
+                ["Mastery"] = 0,
+                ["Avoidance"] = 0,
+                ["Speed"] = 0,
+                ["Socket"] = 0
+            },
+            ["item"] = {
+                ["Armor"] = 0,
+                ["Strength"] = 0,
+                ["Agility"] = 0,
+                ["Intellect"] = 0,
+                ["Stamina"] = 0,
+                ["Critical STrike"] = 0,
+                ["Haste"] = 0,
+                ["Versatility"] = 0,
+                ["Mastery"] = 0,
+                ["Avoidance"] = 0,
+                ["Speed"] = 0,
+                ["Socket"] = 0
+            }
+        }
+
+        local hasStat = {
+            ["equipped"] = {
+                ["Armor"] = 0,
+                ["Strength"] = 0,
+                ["Agility"] = 0,
+                ["Intellect"] = 0,
+                ["Stamina"] = 0,
+                ["Critical STrike"] = 0,
+                ["Haste"] = 0,
+                ["Versatility"] = 0,
+                ["Mastery"] = 0,
+                ["Avoidance"] = 0,
+                ["Speed"] = 0,
+                ["Socket"] = 0
+            },
+            ["item"] = {
+                ["Armor"] = 0,
+                ["Strength"] = 0,
+                ["Agility"] = 0,
+                ["Intellect"] = 0,
+                ["Stamina"] = 0,
+                ["Critical STrike"] = 0,
+                ["Haste"] = 0,
+                ["Versatility"] = 0,
+                ["Mastery"] = 0,
+                ["Avoidance"] = 0,
+                ["Speed"] = 0,
+                ["Socket"] = 0
+            }
+        }
+
+        parseTooltip(tooltip, compare["item"], hasStat["item"]);
+        scanEquippedTooltip(charItem, compare["equipped"], hasStat["equipped"]);
+
+        compareStats("Armor", compare, hasStat, tooltip, 0, 0);
+        compareStats("Strength", compare, hasStat, tooltip, 0, 0);
+        compareStats("Intellect", compare, hasStat, tooltip, 0, 0);
+        compareStats("Agility", compare, hasStat, tooltip, 0, 0);
+        compareStats("Critical Strike", compare, hasStat, tooltip, 110, 0);
+        compareStats("Haste", compare, hasStat, tooltip, 100, 0);
+        compareStats("Versatility", compare, hasStat, tooltip, 130, 0);
+        compareStats("Mastery", compare, hasStat, tooltip, 110, coefficient);
+        compareStats("Avoidance", compare, hasStat, tooltip, 0, 0);
+        compareStats("Speed", compare, hasStat, tooltip, 0, 0);
+        compareStats("Socket", compare, hasStat, tooltip, 0, 0);
+
+        local bonusesNum, bonusesString = itemLink:match("item:%d+:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:[0-9%-]*:([0-9%-]*):([0-9:]*)");
+        -- thought above, knowing what bonus id is for socket, i could use that. but i am not sure its needed. thou +200 gems are kidna nice
+        -- print(bonusesNum .. ", " .. bonusesString);
+
+        tooltip:Show();
+    end
+
+end
+
+local function meepleAttackItemTooltip(self)
+    -- Hook for normal tooltips.
+    MeepleSellItems.tooltip = self
+    local link = select(2, self:GetItem())
+    if link then
+        addToTooltip(CanIMogIt.tooltip, link)
+    end
+end
+
+local function onSetHyperlink(self, link)
+    -- Hook for Hyperlinked tooltips.
+    print("onSetHyperink(*)");
+    MeepleSellItems.tooltip = self
+    local type, id = string.match(link, "^(%a+):(%d+)")
+    if not type or not id then return end
+    if type == "item" then
+        print("Hyperlink?");
+        addToTooltip(MeepleSellItems.tooltip, link)
+    end
+end
 
 function init_tooltips()
 
-    GameTooltip:HookScript("OnTooltipCleared", OnGameTooltipCleared);
+    GameTooltip:HookScript("OnTooltipSetItem", meepleAttackItemTooltip);
+    ItemRefTooltip:HookScript("OnTooltipSetItem",meepleAttackItemTooltip);
+    ItemRefShoppingTooltip1:HookScript("OnTooltipSetItem", attachItemTooltip)
+    ItemRefShoppingTooltip2:HookScript("OnTooltipSetItem", attachItemTooltip)
+    ShoppingTooltip1:HookScript("OnTooltipSetItem", attachItemTooltip)
+    ShoppingTooltip2:HookScript("OnTooltipSetItem", attachItemTooltip)
+
     -- GameTooltip:HookScript("OnShow", OnGameTooltipShow);
-    hooksecurefunc(GameTooltip, "SetBagItem", function(self, bag, slot) OnGameSetItem(self, bag, slot); end)
+
+--    GameTooltip:HookScript("OnTooltipCleared", OnGameTooltipCleared);
+--    hooksecurefunc(GameTooltip, "SetBagItem", function(self, bag, slot) OnGameSetItem(self, bag, slot); end)
+    hooksecurefunc(GameTooltip, "SetHyperlink", onSetHyperlink);
+
 end

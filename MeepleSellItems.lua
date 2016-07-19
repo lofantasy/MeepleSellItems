@@ -23,6 +23,7 @@ local isBankOpen = false;
 local inspectScantip = CreateFrame("GameTooltip", GlobalAddonName .."ScanningTooltip", nil, "GameTooltipTemplate")
 inspectScantip:SetOwner(UIParent, "ANCHOR_NONE")
 
+--[[ should put this into a parent file. want to use it for the item compare ]]--
 local Unusable = {
     ["Hunter"] = {
 
@@ -38,7 +39,15 @@ local Unusable = {
         }
     },
     ["Death Knight"] = {
+        [LE_ITEM_CLASS_WEAPON] = {
+            [LE_ITEM_WEAPON_STAFF] = true,
 
+        },
+        [LE_ITEM_CLASS_ARMOR] = {
+            [LE_ITEM_ARMOR_CLOTH] = true,
+            [LE_ITEM_ARMOR_LEATHER] = true,
+            [LE_ITEM_ARMOR_MAIL] = true
+        }
     },
     ["Druid"] = {
 
@@ -227,7 +236,7 @@ function SlashCmdList.MEEPLESELLITEM()
 --        -- Merchant window is open, prepare to scan/sell items
 --    else
         -- scan for items that are not learned from mogging.
-        for bag = 4, 4, 1 do
+        for bag = 3, 3, 1 do
             for slot = 1, GetContainerNumSlots( bag), 1 do
                 local itemLink = GetContainerItemLink( bag, slot);
                 local itemId = GetContainerItemID( bag, slot);
@@ -282,7 +291,8 @@ end
 local majorBonuses = {
     [451] = true,
     [450] = true,
-    [566] = true,
+    [564] = true, -- Socket
+    [566] = true, -- Heroic
     [567] = true,
     -- [518] = true, -- Item Level 530
     -- [519] = true, -- Item Level 550
