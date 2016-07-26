@@ -627,8 +627,8 @@ function init_tooltips()
 
     -- GameTooltip:HookScript("OnShow", OnGameTooltipShow);
 
---    GameTooltip:HookScript("OnTooltipCleared", OnGameTooltipCleared);
---    hooksecurefunc(GameTooltip, "SetBagItem", function(self, bag, slot) OnGameSetItem(self, bag, slot); end)
+    --    GameTooltip:HookScript("OnTooltipCleared", OnGameTooltipCleared);
+    --    hooksecurefunc(GameTooltip, "SetBagItem", function(self, bag, slot) OnGameSetItem(self, bag, slot); end)
     hooksecurefunc(GameTooltip, "SetHyperlink", onSetHyperlink);
 
 end
